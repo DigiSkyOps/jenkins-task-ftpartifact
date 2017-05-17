@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="svnartifact" default="svnartifact">
+
+    <!-- default configure info properties -->
+    <dirname property="task.basedir" file="${ant.file.svnartifact}" />
+    <basename property="task.name" file="${task.basedir}" />
+    <property name="task.reports.dir" location="${reports}/${task.name}" />
+    <import file="${task.basedir}/macro/${task.name}_macro.xml" optional="true" />
+
+    <target name="svnartifact">
+
+        <property name="scm.type" value="svn" />
+
+        <!-- default value arguments -->
+        <property name="ftp.user" value="jenkins" />
+        <property name="ftp.pwd" value="jenkins" />
+        <property name="ftp.host" value="ftp.saltpkg.xyz" />
+        <property name="ftp.port" value="21" />
+
+        <property name="artifact.suffix" value="" />
+        <property name="artifact.lane" value="jenkins" />
+
+        <!-- when artifact.version is '' , then create svn.info directory -->
+        <property name="artifact.version" value="" />
+
+        <!-- copy file by path type -->
+        <property name="artifacts.pathid" value="artifacts.pathid" />
+
+        <!-- copy file by fileset type -->
+        <property name="fileset.dir" value="" />
+        <property name="fileset.include" value="" />
+        <property name="fileset.exclude" value="" />
+        <property name="fileset.includes" value="${fileset.include}" />
+        <property name="fileset.excludes" value="${fileset.exclude}" />
+
+        <property name="allow.redeploy" value="false" />
+
+        <!-- is create md5 file -->
+        <property name="is.create.checksum" value="true" />
+
+        <!-- validate require arguments -->
+        <if>
+            <or>
+                <not>
+                    <isset property="group.id" />
+                </not>
+                <not>
+                    <isset property="artifact.id" />
+                </not>
+            </or>
+            <then>
+                <echo message="--// don't exist product.name or project.name properties." level="warning"/>
+            </then>
+        </if>
+
+        <!-- make task `Reports' directory -->
+        <delete dir="${task.reports.dir}" />
+        <mkdir dir="${task.reports.dir}" />
+
+        <echo message="--//${task.reports.dir}" />
+
+        <!-- call svnartifact-macro -->
+        <svnartifact-macro scmType="${scm.type}"
+                           artifactLane="${artifact.lane}" artifactSuffix="${artifact.suffix}"
+                           ftpUser="${ftp.user}" ftpPwd="${ftp.pwd}" ftpHost="${ftp.host}" ftpPort="${ftp.port}"
+                           groupId="${group.id}" artifactId="${artifact.id}" artifactVersion="${artifact.version}"
+                           artifactsPathRefId="${artifacts.pathid}"
+                           filesetDir="${fileset.dir}" filesetIncludes="${fileset.includes}" filesetExcludes="${fileset.excludes}"
+                           isCreateChecksum="${is.create.checksum}" allowRedeploy="${allow.redeploy}"/>
+
+    </target>
+
+</project>

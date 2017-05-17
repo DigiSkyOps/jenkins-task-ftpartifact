@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="svnartifact-macro">
+    <description>
+        this file provide some svnartifact macro defintion.
+    </description>
+
+    <macrodef name="svnartifact-macro">
+        <attribute name="scmType" default="svn" />
+        <attribute name="artifactsPathRefId" />
+        <attribute name="groupId" />
+        <attribute name="artifactId" />
+        <attribute name="artifactLane" default="jenkins" />
+        <attribute name="artifactSuffix" default="" />
+        <attribute name="artifactVersion" default="" />
+        <attribute name="ftpUser" default="jenkins" />
+        <attribute name="ftpPwd" default="jenkins" />
+        <attribute name="ftpHost" default="artifact.nextbu.cn" />
+        <attribute name="ftpPort" default="21" />
+        <attribute name="filesetDir" default="" />
+        <attribute name="filesetIncludes" default="" />
+        <attribute name="filesetExcludes" default="" />
+        <attribute name="isCreateChecksum" default="true" />
+        <attribute name="allowRedeploy" default="false" />
+        <sequential>
+
+            <var name="##artifact.ftp.user##" value="@{ftpUser}" />
+            <var name="##artifact.ftp.pwd##" value="@{ftpPwd}" />
+            <var name="##artifact.ftp.host##" value="@{ftpHost}" />
+            <var name="##artifact.ftp.port##" value="@{ftpPort}" />
+
+            <var name="artifacts.dir" value="Artifacts" />
+
+            <!-- artifact.lane -->
+            <var name="##artifact.lane.dir##" value="" />
+            <if>
+                <not>
+                    <equals arg1="@{artifactLane}" arg2="" trim="true" />
+                </not>
+                <then>
+                    <var name="##artifact.lane.dir##" value="@{artifactLane}/" />
+                </then>
+            </if>
+
+            <!-- group.id -->
+            <var name="##group.id.dir##" value="" />
+            <if>
+                <not>
+                    <equals arg1="@{groupId}" arg2="" trim="true" />
+                </not>
+                <then>
+                    <propertyregex property="group.id.dir" input="@{groupId}" regexp="\." replace="/" global="true" defaultValue="@{groupId}" />
+                    <var name="##group.id.dir##" value="${group.id.dir}/" />
+                </then>
+            </if>
+
+            <!-- artifact.id -->
+            <var name="##artifact.id.dir##" value="" />
+            <if>
+                <not>
+                    <equals arg1="@{artifactId}" arg2="" trim="true" />
+                </not>
+                <then>
+                    <var name="##artifact.id.dir##" value="@{artifactId}/" />
+                </then>
+            </if>
+
+            <var name="##artifact.path##" value="${##artifact.lane.dir##}${##group.id.dir##}${##artifact.id.dir##}" />
+
+            <property name="outputDir" location="${task.reports.dir}" />
+            <var name="tempOutputFile" value="${outputDir}/svnartifact-report.xml" />
+
+            <delete dir="${artifacts.dir}" />
+            <mkdir dir="${artifacts.dir}" />
+            <if>
+                <equals arg1="@{filesetDir}" arg2="" trim="true" />
+                <then>
+                    <copy todir="${artifacts.dir}" verbose="true">
+                        <path refid="@{artifactsPathRefId}" />
+                    </copy>
+                </then>
+                <else>
+                    <copy todir="${artifacts.dir}" verbose="true">
+                       <fileset dir="@{filesetDir}" includes="@{filesetIncludes}" excludes="@{filesetExcludes}" />
+                    </copy>
+                </else>
+            </if>
+
+            <if>
+                <equals arg1="@{artifactVersion}" arg2="" trim="true" />
+                <then>
+                    <if>
+                        <equals arg1="@{scmType}" arg2="svn" trim="true" />
+                        <then>
+                            <echo message="--// get svn revision..." />
+                            <get-svn-info targetFile="${ws.dir}" svnRevisionProperty="artifact.svn.revision"
+                                          svnUrlProperty="artifact.svn.url" />
+
+                            <propertyregex property="svn.branch.name1" input="${artifact.svn.url}" regexp=".*\/((trunk|branches|tags).*)$" select="\1" defaultValue=""/>
+                            <propertyregex property="svn.repo.url" input="${artifact.svn.url}" regexp="(.*)\/(trunk|branches|tags).*$" select="\1" defaultValue=""/>
+
+                            <propertyregex property="svn.branch.name2" input="${svn.branch.name1}" regexp="\/" replace="-" />
+
+                            <var name="svn.branch.name" value="${svn.branch.name1}" />
+                            <if>
+                                <isset property="svn.branch.name2" />
+                                <then>
+                                    <var name="svn.branch.name" value="${svn.branch.name2}" />
+                                </then>
+                                <else>
+                                    <var name="svn.branch.name" value="${svn.branch.name1}" />
+                                </else>
+                            </if>
+                            <echo message="--// svn.repo.url: ${svn.repo.url}" />
+                            <echo message="--// svn.branch.name: ${svn.branch.name}" />
+                            <echo message="--// svn.revision: ${artifact.svn.revision}" />
+
+                            <tstamp>
+                                <format property="today" pattern="yyyy-MM-dd"/>
+                            </tstamp>
+                            <if>
+                                <equals arg1="@{artifactSuffix}" arg2="" trim="true" />
+                                <then>
+                                    <property name="version.filename" value="${today}.${artifact.svn.revision}" />
+                                </then>
+                                <else>
+                                    <property name="version.filename" value="${today}.${artifact.svn.revision}.@{artifactSuffix}" />
+                                </else>
+                            </if>
+
+                            <echo message="${version.filename}" />
+                            <var name="ftp.remotedir" value="${##artifact.path##}${svn.branch.name}/${version.filename}" />
+                        </then>
+                        <elseif>
+                            <equals arg1="@{scmType}" arg2="git" trim="true" />
+                            <then>
+                                <echo message="${ws.dir}" />
+                                <get-git-commit-id repoDir="${ws.dir}" />
+                                <var name="##version.number##" value="${git.commit.id}" />
+                                <get-git-branch repoDir="${ws.dir}" />
+                                <echo message="--// git.commit.id: ${##version.number##}" />
+                                <echo message="--// git.branch: ${git.branch.name}" />
+                                <var name="ftp.remotedir" value="${##artifact.path##}${git.branch.name}/${git.short.commit.id}" />
+                            </then>
+                        </elseif>
+                        <else>
+                            <fail message="--// scm.type: ${scm.type} is not supported." />
+                        </else>
+                    </if>
+                </then>
+                <else>
+                    <var name="ftp.remotedir" value="${##artifact.path##}@{artifactVersion}" />
+                </else>
+            </if>
+
+            <echo message="ftp artifact url: ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" />
+
+            <check-ftp-dir-is-exist ftpHost="${##artifact.ftp.host##}" ftpPort="${##artifact.ftp.port##}"
+                                    ftpUsername="${##artifact.ftp.user##}" ftpPassword="${##artifact.ftp.pwd##}"
+                                    targetDir="${ftp.remotedir}" isExistProperty="remote.dir.is.exist" />
+
+            <if>
+                <and>
+                    <istrue value="${remote.dir.is.exist}"/>
+                    <not>
+                        <istrue value="@{allowRedeploy}" />
+                    </not>
+                </and>
+                <then>
+                    <echo message="files is artifacted. please visited ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" level="warning"/>
+                </then>
+                <else>
+                    <if>
+                        <istrue value="@{isCreateChecksum}" />
+                        <then>
+                            <checksum>
+                                <fileset dir="${artifacts.dir}">
+                                    <include name="**/*" />
+                                </fileset>
+                            </checksum>
+                        </then>
+                    </if>
+
+                    <ftp action="mkdir" server="${##artifact.ftp.host##}" port="${##artifact.ftp.port##}"
+                         userid="${##artifact.ftp.user##}" password="${##artifact.ftp.pwd##}"
+                         passive="true" remotedir="${ftp.remotedir}"/>
+
+                    <ftp server="${##artifact.ftp.host##}" port="${##artifact.ftp.port##}"
+                         remotedir="${ftp.remotedir}"
+                         userid="${##artifact.ftp.user##}" password="${##artifact.ftp.pwd##}"
+                         passive="true" depends="yes">
+                        <fileset dir="${artifacts.dir}"/>
+                    </ftp>
+
+                </else>
+            </if>
+
+            <echoxml file="${tempOutputFile}">
+                <svnartifact>
+                    <ftp url="ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" />
+                </svnartifact>
+            </echoxml>
+
+            <if>
+                <available file="${tempOutputFile}" />
+                <then>
+                    <copy file="${tempOutputFile}" tofile="${outputDir}/summary.xml" />
+                    <if>
+                        <available file="${task.basedir}/convertor/report.xsl" />
+                        <then>
+                            <copy file="${task.basedir}/convertor/report.xsl" todir="${task.reports.dir}" />
+                        </then>
+                    </if>
+                </then>
+            </if>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="check-ftp-dir-is-exist">
+        <attribute name="ftpHost" />
+        <attribute name="ftpPort" />
+        <attribute name="ftpUsername" />
+        <attribute name="ftpPassword" />
+        <attribute name="targetDir" />
+        <attribute name="isExistProperty" default="is.exist" />
+        <sequential>
+
+            <groovy>
+                <arg value="@{ftpHost}" />
+                <arg value="@{ftpPort}" />
+                <arg value="@{ftpUsername}" />
+                <arg value="@{ftpPassword}" />
+                <arg value="@{targetDir}" />
+                <arg value="@{isExistProperty}" />
+
+                import org.apache.commons.net.ftp.FTPClient
+                import org.apache.commons.net.ftp.FTPReply
+
+                def ftpHost = args[0]
+                def ftpPort = args[1].toInteger()
+                def ftpUsername = args[2]
+                def ftpPassword = args[3]
+                def targetDir = args[4]
+                def isExistProperty = args[5]
+
+                def ftpClient = new FTPClient()
+                ftpClient.connect(ftpHost, ftpPort)
+                System.out.println("connect reply code: " + ftpClient.getReplyCode())
+                ftpClient.login(ftpUsername, ftpPassword)
+                System.out.println("login reply code: " + ftpClient.getReplyCode())
+                ftpClient.changeWorkingDirectory(targetDir)
+                returnCode = ftpClient.getReplyCode()
+                if (returnCode == 550) {
+                    properties[isExistProperty] = false
+                } else {
+                    properties[isExistProperty] = true
+                }
+
+                System.out.println("return code: " + returnCode)
+            </groovy>
+
+        </sequential>
+    </macrodef>
+
+
+</project>
