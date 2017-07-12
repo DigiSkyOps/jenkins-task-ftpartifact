@@ -5,8 +5,7 @@
     </description>
 
     <macrodef name="svnartifact-macro">
-        <attribute name="scmType" default="svn" />
-        <attribute name="artifactsPathRefId" />
+        <attribute name="scmType" default="git" />
         <attribute name="groupId" />
         <attribute name="artifactId" />
         <attribute name="artifactLane" default="jenkins" />
@@ -28,10 +27,14 @@
             <var name="##artifact.ftp.host##" value="@{ftpHost}" />
             <var name="##artifact.ftp.port##" value="@{ftpPort}" />
 
-            <var name="artifacts.dir" value="Artifacts" />
+            <var name="artifacts.dir" value=".artifacts" />
+
+            <tstamp>
+              <format property="today" pattern="yyyy-MM-dd-HH-MM"/>
+            </tstamp>
 
             <!-- artifact.lane -->
-            <var name="##artifact.lane.dir##" value="" />
+            <var name="##artifact.lane.dir##" value="jenkins" />
             <if>
                 <not>
                     <equals arg1="@{artifactLane}" arg2="" trim="true" />
@@ -51,6 +54,9 @@
                     <propertyregex property="group.id.dir" input="@{groupId}" regexp="\." replace="/" global="true" defaultValue="@{groupId}" />
                     <var name="##group.id.dir##" value="${group.id.dir}/" />
                 </then>
+                <else>
+                  <fail messasge=" --// production info(group.id) is not configure" />
+                </else>
             </if>
 
             <!-- artifact.id -->
@@ -62,32 +68,27 @@
                 <then>
                     <var name="##artifact.id.dir##" value="@{artifactId}/" />
                 </then>
-            </if>
-
-            <var name="##artifact.path##" value="${##artifact.lane.dir##}${##group.id.dir##}${##artifact.id.dir##}" />
-
-            <property name="outputDir" location="${task.reports.dir}" />
-            <var name="tempOutputFile" value="${outputDir}/svnartifact-report.xml" />
-
-            <delete dir="${artifacts.dir}" />
-            <mkdir dir="${artifacts.dir}" />
-            <if>
-                <equals arg1="@{filesetDir}" arg2="" trim="true" />
-                <then>
-                    <copy todir="${artifacts.dir}" verbose="true">
-                        <path refid="@{artifactsPathRefId}" />
-                    </copy>
-                </then>
                 <else>
-                    <copy todir="${artifacts.dir}" verbose="true">
-                       <fileset dir="@{filesetDir}" includes="@{filesetIncludes}" excludes="@{filesetExcludes}" />
-                    </copy>
+                  <fail message="--// production info(artifact.id) is not configure" />
                 </else>
             </if>
+
+            <var name="##artifact.path##" value="${##group.id.dir##}${##artifact.id.dir##}" />
+
+            <property name="outputDir" location="${task.reports.dir}" />
+            <var name="tempOutputFile" value="${outputDir}/ftpartifact-report.xml" />
+
+            <delete dir="${artifacts.dir}" /><mkdir dir="${artifacts.dir}" />
+
+            <!-- copy artifact resource -->
+            <copy todir="${artifacts.dir}" verbose="true">
+              <fileset dir="@{filesetDir}" includes="@{filesetIncludes}" excludes="@{filesetExcludes}" />
+            </copy>
 
             <if>
                 <equals arg1="@{artifactVersion}" arg2="" trim="true" />
                 <then>
+                    <var name="##artifact.lane.dir##" value="svn/" />
                     <if>
                         <equals arg1="@{scmType}" arg2="svn" trim="true" />
                         <then>
@@ -114,32 +115,30 @@
                             <echo message="--// svn.branch.name: ${svn.branch.name}" />
                             <echo message="--// svn.revision: ${artifact.svn.revision}" />
 
-                            <tstamp>
-                                <format property="today" pattern="yyyy-MM-dd"/>
-                            </tstamp>
                             <if>
                                 <equals arg1="@{artifactSuffix}" arg2="" trim="true" />
                                 <then>
-                                    <property name="version.filename" value="${today}.${artifact.svn.revision}" />
+                                    <property name="version.filename" value="${artifact.svn.revision}" />
                                 </then>
                                 <else>
-                                    <property name="version.filename" value="${today}.${artifact.svn.revision}.@{artifactSuffix}" />
+                                    <property name="version.filename" value="${artifact.svn.revision}.@{artifactSuffix}" />
                                 </else>
                             </if>
 
-                            <echo message="${version.filename}" />
-                            <var name="ftp.remotedir" value="${##artifact.path##}${svn.branch.name}/${version.filename}" />
+                            <echo message="version.filename: ${version.filename}" />
+                            <var name="ftp.remotedir" value="${##artifact.path##}/${today}/${svn.branch.name}/${version.filename}" />
                         </then>
                         <elseif>
                             <equals arg1="@{scmType}" arg2="git" trim="true" />
                             <then>
+                              <var name="##artifact.lane.dir##" value="git/" />
                                 <echo message="${ws.dir}" />
                                 <get-git-commit-id repoDir="${ws.dir}" />
                                 <var name="##version.number##" value="${git.commit.id}" />
                                 <get-git-branch repoDir="${ws.dir}" />
                                 <echo message="--// git.commit.id: ${##version.number##}" />
                                 <echo message="--// git.branch: ${git.branch.name}" />
-                                <var name="ftp.remotedir" value="${##artifact.path##}${git.branch.name}/${git.short.commit.id}" />
+                                <var name="ftp.remotedir" value="${##artifact.path##}/${today}/${git.branch.name}/${git.short.commit.id}" />
                             </then>
                         </elseif>
                         <else>
@@ -152,9 +151,11 @@
                 </else>
             </if>
 
+            <var name="ftp.remotedir" value="${##artifact.lane.dir##}${ftp.remotedir}" />
+
             <echo message="ftp artifact url: ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" />
 
-            <check-ftp-dir-is-exist ftpHost="${##artifact.ftp.host##}" ftpPort="${##artifact.ftp.port##}"
+            <checkFtpArtifactDirExists ftpHost="${##artifact.ftp.host##}" ftpPort="${##artifact.ftp.port##}"
                                     ftpUsername="${##artifact.ftp.user##}" ftpPassword="${##artifact.ftp.pwd##}"
                                     targetDir="${ftp.remotedir}" isExistProperty="remote.dir.is.exist" />
 
@@ -166,13 +167,13 @@
                     </not>
                 </and>
                 <then>
-                    <echo message="files is artifacted. please visited ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" level="warning"/>
+                  <echo message="--//files is artifacted. please visited ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" level="warning"/>
                 </then>
                 <else>
                     <if>
                         <istrue value="@{isCreateChecksum}" />
                         <then>
-                            <checksum>
+                            <checksum forceoverwrite="true" fileext="md5">
                                 <fileset dir="${artifacts.dir}">
                                     <include name="**/*" />
                                 </fileset>
@@ -195,9 +196,9 @@
             </if>
 
             <echoxml file="${tempOutputFile}">
-                <svnartifact>
+                <ftpartifact>
                     <ftp url="ftp://${##artifact.ftp.host##}:${##artifact.ftp.port##}/${ftp.remotedir}" />
-                </svnartifact>
+                </ftpartifact>
             </echoxml>
 
             <if>
@@ -215,7 +216,7 @@
         </sequential>
     </macrodef>
 
-    <macrodef name="check-ftp-dir-is-exist">
+    <macrodef name="checkFtpArtifactDirExists">
         <attribute name="ftpHost" />
         <attribute name="ftpPort" />
         <attribute name="ftpUsername" />
@@ -223,7 +224,6 @@
         <attribute name="targetDir" />
         <attribute name="isExistProperty" default="is.exist" />
         <sequential>
-
             <groovy>
                 <arg value="@{ftpHost}" />
                 <arg value="@{ftpPort}" />
@@ -244,9 +244,9 @@
 
                 def ftpClient = new FTPClient()
                 ftpClient.connect(ftpHost, ftpPort)
-                System.out.println("connect reply code: " + ftpClient.getReplyCode())
+                println("--//connect reply code: " + ftpClient.getReplyCode())
                 ftpClient.login(ftpUsername, ftpPassword)
-                System.out.println("login reply code: " + ftpClient.getReplyCode())
+                println("--//login reply code: " + ftpClient.getReplyCode())
                 ftpClient.changeWorkingDirectory(targetDir)
                 returnCode = ftpClient.getReplyCode()
                 if (returnCode == 550) {
@@ -255,7 +255,7 @@
                     properties[isExistProperty] = true
                 }
 
-                System.out.println("return code: " + returnCode)
+                println("--//return code: " + returnCode)
             </groovy>
 
         </sequential>

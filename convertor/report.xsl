@@ -26,19 +26,19 @@
 
 
     <xsl:template match="/" mode="summary">
-        <xsl:if test="count($process.root//svnartifact) > 0">
+        <xsl:if test="count($process.root//ftpartifact) > 0">
             <xsl:call-template name="task.summary.sublayer"/>
         </xsl:if>
     </xsl:template>
 
 
     <xsl:template match="/" mode="task.layer">
-        <xsl:if test="count($process.root//svnartifact) > 0">
-            <h2 align="center">svnartifact report</h2>
+        <xsl:if test="count($process.root//ftpartifact) > 0">
+            <h2 align="center">ftpartifact report</h2>
             <xsl:call-template name="task.summary.sublayer" />
         </xsl:if>
-        <xsl:if test="count($process.root//svnartifact) = 0 and count(//svnartifact) = 0">
-            <p align="center">svnartifact was not run against this project. </p>
+        <xsl:if test="count($process.root//ftpartifact) = 0 and count(//ftpartifact) = 0">
+            <p align="center">ftpartifact was not run against this project. </p>
         </xsl:if>
     </xsl:template>
 
@@ -51,11 +51,11 @@
     </xsl:template>
 
     <xsl:template name="task.summary.sublayer">
-        <xsl:variable name="svnartifact.root" select="$process.root" />
+        <xsl:variable name="ftpartifact.root" select="$process.root" />
         <xsl:variable name="child.layer.count" select="count($process.root/layer)" />
 
-        <h2>&#160; SvnArtifact Summary <em><xsl:apply-templates select="$process.root[1]" mode="get.full.layer.name" /></em></h2>
-        <table  class="sortable pane bigtable stripped-odd" id="svnartifact" border="1">
+        <h2>&#160; FTP Artifact Summary <em><xsl:apply-templates select="$process.root[1]" mode="get.full.layer.name" /></em></h2>
+        <table  class="sortable pane bigtable stripped-odd" id="ftpartifact" border="1">
             <tbody>
                 <tr class="header">
                     <th>
@@ -66,21 +66,21 @@
                             Name
                         </xsl:if>
                     </th>
-                    <th>ftp url</th>
+                    <th>artifact url</th>
                 </tr>
 
                 <xsl:if test="count($process.root) > 0">
                     <xsl:for-each select="$process.root">
-                        <xsl:apply-templates select="svnartifact" mode="currentnode.task.layer" />
+                        <xsl:apply-templates select="ftpartifact" mode="currentnode.task.layer" />
                     </xsl:for-each>
                 </xsl:if>
             </tbody>
         </table>
     </xsl:template>
 
-    <xsl:template match="svnartifact" mode="currentnode.task.layer">
+    <xsl:template match="ftpartifact" mode="currentnode.task.layer">
         <tr>
-            <td>./svnartifact</td>
+            <td>./ftpartifact</td>
             <td>
                 <a><xsl:attribute name="href"><xsl:value-of select="ftp/@url" /></xsl:attribute><xsl:attribute name="target">_blank</xsl:attribute><xsl:value-of select="ftp/@url" /></a>
             </td>

@@ -9,29 +9,24 @@
 
     <target name="svnartifact">
 
-        <property name="scm.type" value="svn" />
+        <property name="scm.type" value="git" />
 
         <!-- default value arguments -->
         <property name="ftp.user" value="jenkins" />
         <property name="ftp.pwd" value="jenkins" />
-        <property name="ftp.host" value="ftp.saltpkg.xyz" />
+        <property name="ftp.host" value="ftp.opstack.xyz" />
         <property name="ftp.port" value="21" />
 
-        <property name="artifact.suffix" value="" />
         <property name="artifact.lane" value="jenkins" />
+        <property name="artifact.suffix" value="" />
 
         <!-- when artifact.version is '' , then create svn.info directory -->
         <property name="artifact.version" value="" />
 
-        <!-- copy file by path type -->
-        <property name="artifacts.pathid" value="artifacts.pathid" />
-
         <!-- copy file by fileset type -->
         <property name="fileset.dir" value="" />
-        <property name="fileset.include" value="" />
-        <property name="fileset.exclude" value="" />
-        <property name="fileset.includes" value="${fileset.include}" />
-        <property name="fileset.excludes" value="${fileset.exclude}" />
+        <property name="fileset.includes" value="" />
+        <property name="fileset.excludes" value="" />
 
         <property name="allow.redeploy" value="false" />
 
@@ -49,11 +44,11 @@
                 </not>
             </or>
             <then>
-                <echo message="--// don't exist product.name or project.name properties." level="warning"/>
+                <fail message="--// don't exist product info(group.id and artifact.id) properties." />
             </then>
         </if>
 
-        <!-- make task `Reports' directory -->
+        <!-- make task `.reports/ftpartifact' directory -->
         <delete dir="${task.reports.dir}" />
         <mkdir dir="${task.reports.dir}" />
 
@@ -64,7 +59,6 @@
                            artifactLane="${artifact.lane}" artifactSuffix="${artifact.suffix}"
                            ftpUser="${ftp.user}" ftpPwd="${ftp.pwd}" ftpHost="${ftp.host}" ftpPort="${ftp.port}"
                            groupId="${group.id}" artifactId="${artifact.id}" artifactVersion="${artifact.version}"
-                           artifactsPathRefId="${artifacts.pathid}"
                            filesetDir="${fileset.dir}" filesetIncludes="${fileset.includes}" filesetExcludes="${fileset.excludes}"
                            isCreateChecksum="${is.create.checksum}" allowRedeploy="${allow.redeploy}"/>
 
