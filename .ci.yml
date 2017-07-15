@@ -16,7 +16,7 @@ stages:
       - task.id: opspkg
         artifact.id: ${meta.name}
         fileset.dir: ${ws.dir}
-        fileset.includes: convertor/*.*,macro/*.xml,VERSION
+        fileset.includes: 'convertor/*.*,macro/*.xml,VERSION'
 
   - name: artifact
     tasks:

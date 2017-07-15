@@ -93,7 +93,7 @@
                         <equals arg1="@{scmType}" arg2="svn" trim="true" />
                         <then>
                             <echo message="--// get svn revision..." />
-                            <get-svn-info targetFile="${ws.dir}" svnRevisionProperty="artifact.svn.revision"
+                            <getSvnInfo targetFile="${ws.dir}" svnRevisionProperty="artifact.svn.revision"
                                           svnUrlProperty="artifact.svn.url" />
 
                             <propertyregex property="svn.branch.name1" input="${artifact.svn.url}" regexp=".*\/((trunk|branches|tags).*)$" select="\1" defaultValue=""/>
@@ -133,9 +133,9 @@
                             <then>
                               <var name="##artifact.lane.dir##" value="git/" />
                                 <echo message="${ws.dir}" />
-                                <get-git-commit-id repoDir="${ws.dir}" />
-                                <var name="##version.number##" value="${git.commit.id}" />
-                                <get-git-branch repoDir="${ws.dir}" />
+                                <getGitCommitId repoDir="${ws.dir}" />
+                                <var name="##version.number##" value="${git.short.commit.id}" />
+                                <getGitBranch repoDir="${ws.dir}" />
                                 <echo message="--// git.commit.id: ${##version.number##}" />
                                 <echo message="--// git.branch: ${git.branch.name}" />
                                 <var name="ftp.remotedir" value="${##artifact.path##}/${today}/${git.branch.name}/${git.short.commit.id}" />
@@ -260,6 +260,5 @@
 
         </sequential>
     </macrodef>
-
 
 </project>
