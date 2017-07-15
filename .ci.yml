@@ -1,0 +1,30 @@
+---
+version: '1.0'
+box: abs
+
+name: ftpartifact
+
+# pipeline -> stage -> tasks
+
+stages:
+  - name: pkg
+    tasks:
+      - task.id: customtask
+        type: cmdline
+        workdir: ${ws.dir}
+        command: ./pkg.sh
+  - name: artifact
+    tasks:
+      - task.id: ftpartifact
+        scm.type: git
+        artifact.lane: jenkins
+        fileset.dir: ${ws.dir}
+        fileset.includes: ftpartifact-*.tar.gz
+
+pipelines:
+  - name: dev
+    stages:
+      - pkg
+      - artifact
+
+default: dev
