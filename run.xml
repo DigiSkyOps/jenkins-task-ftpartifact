@@ -5,7 +5,7 @@
     <dirname property="task.basedir" file="${ant.file.svnartifact}" />
     <basename property="task.name" file="${task.basedir}" />
     <property name="task.reports.dir" location="${reports}/${task.name}" />
-    <import file="${task.basedir}/macro/${task.name}_macro.xml" optional="true" />
+    <import file="${task.basedir}/macro/svnartifact_macro.xml" optional="true" />
 
     <target name="svnartifact">
 
