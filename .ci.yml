@@ -22,7 +22,6 @@ stages:
     tasks:
       - task.id: ftpartifact
         scm.type: git
-        group.id: xyz.opstack.jenkins.tasks
         artifact.lane: jenkins
         fileset.dir: ${ws.dir}
         fileset.includes: ${meta.name}-*.tar.gz
