@@ -173,7 +173,7 @@
                     <if>
                         <istrue value="@{isCreateChecksum}" />
                         <then>
-                            <checksum forceoverwrite="true" fileext="md5">
+                            <checksum forceoverwrite="true" fileext=".md5">
                                 <fileset dir="${artifacts.dir}">
                                     <include name="**/*" />
                                 </fileset>
