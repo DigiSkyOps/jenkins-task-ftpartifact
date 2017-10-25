@@ -183,12 +183,12 @@
 
                     <ftp action="mkdir" server="${##artifact.ftp.host##}" port="${##artifact.ftp.port##}"
                          userid="${##artifact.ftp.user##}" password="${##artifact.ftp.pwd##}"
-                         passive="true" remotedir="${ftp.remotedir}"/>
+                         passive="true" remotedir="${ftp.remotedir}" verbose="true" enableRemoteVerification="false"/>
 
                     <ftp server="${##artifact.ftp.host##}" port="${##artifact.ftp.port##}"
                          remotedir="${ftp.remotedir}"
                          userid="${##artifact.ftp.user##}" password="${##artifact.ftp.pwd##}"
-                         passive="true" depends="yes">
+                         passive="true" depends="yes" verbose="true" enableRemoteVerification="false">
                         <fileset dir="${artifacts.dir}"/>
                     </ftp>
 
