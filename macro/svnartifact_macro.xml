@@ -27,7 +27,7 @@
             <var name="##artifact.ftp.host##" value="@{ftpHost}" />
             <var name="##artifact.ftp.port##" value="@{ftpPort}" />
 
-            <var name="artifacts.dir" value=".artifacts" />
+            <var name="artifacts.dir" value="${ws.dir}/.artifacts" />
 
             <tstamp>
               <format property="today" pattern="yyyy-MM-dd-HH-MM"/>
